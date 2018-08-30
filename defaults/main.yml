@@ -1,0 +1,30 @@
+---
+# defaults file for ansible_bookkeeper
+
+# Version of Bookkeeper to install
+BOOKKEEPER_VERSION: 4.6.2
+
+# Baseurl for mirror to download from
+BOOKKEEPER_MIRROR: https://archive.apache.org/dist/bookkeeper/
+
+
+# Path to install bookkeeper under
+# role will automatically create a symlink for the most current version here and untar all versions here as well
+PACKAGE_BASE: /opt
+
+BOOKKEEPER_HOME: /opt/bookkeeper
+
+# Path to keep bookkeeper config in
+BOOKKEEPER_CONFIG_DIR: /etc/bookkeeper
+
+# Path for bookkeeper data
+BOOKKEEPER_LEDGER_DIR: /var/bookkeeper
+
+# Path for bookkeeper wal
+BOOKKEEPER_JOURNAL_DIR: /var/bookkeeper
+
+# Path to write logs in
+BOOKKEEPER_LOG_DIR: /var/log/bookkeeper
+
+# User to run bookkeeper as, this will also be used as groupname
+BOOKKEEPER_USER: bookkeeper

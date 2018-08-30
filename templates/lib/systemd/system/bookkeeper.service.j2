@@ -1,0 +1,14 @@
+[Unit]
+Description=Apache Bookkeeper
+Before=
+After=network.target
+
+[Service]
+User=bookkeeper
+ExecStart={{ BOOKKEEPER_HOME }}/bin/bookkeeper bookie
+Restart=on-abort
+StandardOutput=journal+console
+EnvironmentFile=/etc/sysconfig/bookkeeper
+
+[Install]
+WantedBy=multi-user.target

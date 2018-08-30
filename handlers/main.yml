@@ -1,0 +1,9 @@
+---
+# handlers file for ansible_zookeeper
+- name: restart bookkeeper
+  service: name=bookkeeper state=restarted
+
+- name: reload systemd
+  command: systemctl daemon-reload
+  become: true
+  notify: restart bookkeeper

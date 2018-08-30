@@ -1,0 +1,86 @@
+---
+# Purpose: Download and install bookkeeper on all master servers
+#
+- name: Install necessary packages
+  yum: name={{ item }} update_cache=yes state=present
+  when: ansible_os_family == 'RedHat'
+  with_items:
+    - libselinux-python
+
+- name: Create group bookkeeper
+  group:
+    name: "{{ BOOKKEEPER_USER }}"
+    state: present
+
+- name: Create user for bookkeeper
+  user:
+    name: "{{ BOOKKEEPER_USER }}"
+    state: present
+    group: bookkeeper
+
+- name: Create directories & set ownership
+  file:
+    path: "{{ item }}"
+    owner: "{{ BOOKKEEPER_USER }}"
+    group: "{{ BOOKKEEPER_USER }}"
+    mode: 0755
+    recurse: yes
+    state: directory
+  with_items:
+    - "{{ BOOKKEEPER_CONFIG_DIR }}"
+    - "{{ BOOKKEEPER_LOG_DIR }}"
+    - "{{ BOOKKEEPER_LEDGER_DIR }}"
+    - "{{ BOOKKEEPER_JOURNAL_DIR }}"
+
+- name: Download Bookkeeper
+  get_url:
+    url: "{{ BOOKKEEPER_MIRROR }}bookkeeper-{{ BOOKKEEPER_VERSION }}/bookkeeper-server-{{ BOOKKEEPER_VERSION }}-bin.tar.gz"
+    dest: "/tmp/bookkeeper-server-{{ BOOKKEEPER_VERSION }}-bin.tar.gz"
+    mode: 0644
+
+- name: Untar Bookkeeper
+  unarchive:
+    src: /tmp/bookkeeper-server-{{ BOOKKEEPER_VERSION }}-bin.tar.gz
+    dest: "{{ PACKAGE_BASE }}"
+    owner: "{{ BOOKKEEPER_USER }}"
+    group: "{{ BOOKKEEPER_USER }}"
+    copy: no
+    creates: "{{ PACKAGE_BASE }}/bookkeeper-server-{{ BOOKKEEPER_VERSION }}"
+
+- name: Symlink Bookkeeper
+  file:
+    src: "{{ PACKAGE_BASE }}/bookkeeper-server-{{ BOOKKEEPER_VERSION }}"
+    path: "{{ BOOKKEEPER_HOME }}"
+    owner: "{{ BOOKKEEPER_USER }}"
+    group: "{{ BOOKKEEPER_USER }}"
+    state: link
+
+- name: Put Bookkeeper configuration in place
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ BOOKKEEPER_USER }}"
+    group: "{{ BOOKKEEPER_USER }}"
+    mode: 0644
+  with_items:
+    - { src: "etc/bookkeeper/bk_server.conf.j2", dest: "{{ BOOKKEEPER_CONFIG_DIR }}/bk_server.conf" }
+    - { src: "etc/bookkeeper/log4j.properties.j2", dest: "{{ BOOKKEEPER_CONFIG_DIR }}/log4j.properties" }
+  notify: restart bookkeeper
+
+- name: Template Systemd files
+  template: src={{ item.src }} dest={{ item.dest }} owner=root group=root mode={{ item.mode }} backup=yes
+  with_items:
+    - {src: "etc/sysconfig/bookkeeper.j2" , dest: "/etc/sysconfig/bookkeeper", mode: "755"}
+    - {src: "lib/systemd/system/bookkeeper.service.j2" , dest: "/lib/systemd/system/bookkeeper.service", mode: "644"}
+  notify: reload systemd
+
+#- name: Initialize bookkeeper metadata in Zookeeper
+#  shell: export BOOKIE_CONF={{ BOOKKEEPER_CONFIG_DIR }}/bk_server.conf {{ BOOKKEEPER_HOME }}/bin/bookkeeper shell metaformat -force > {{ BOOKKEEPER_CONFIG_DIR }}/metadata.create
+#  args:
+#    creates: "{{ BOOKKEEPER_CONFIG_DIR }}/metadata.create"
+
+- name: Start bookkeeper
+  service:
+    name: bookkeeper
+    state: restarted
+    enabled: yes
