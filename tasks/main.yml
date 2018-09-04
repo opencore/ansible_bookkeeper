@@ -74,10 +74,12 @@
     - {src: "lib/systemd/system/bookkeeper.service.j2" , dest: "/lib/systemd/system/bookkeeper.service", mode: "644"}
   notify: reload systemd
 
-#- name: Initialize bookkeeper metadata in Zookeeper
-#  shell: export BOOKIE_CONF={{ BOOKKEEPER_CONFIG_DIR }}/bk_server.conf {{ BOOKKEEPER_HOME }}/bin/bookkeeper shell metaformat -force > {{ BOOKKEEPER_CONFIG_DIR }}/metadata.create
-#  args:
-#    creates: "{{ BOOKKEEPER_CONFIG_DIR }}/metadata.create"
+- name: Initialize bookkeeper metadata in Zookeeper
+  shell: "{{ BOOKKEEPER_HOME }}/bin/bookkeeper shell metaformat -nonInteractive"
+  run_once: true
+  ignore_errors: true
+  environment:
+    BOOKIE_CONF: "{{ BOOKKEEPER_CONFIG_DIR }}/bk_server.conf"
 
 - name: Start bookkeeper
   service:
